@@ -427,7 +427,7 @@ func RestoreScore(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	var user models.User
-	database.DatabaseConnection.First(&user, id)
+	database.DatabaseConnection.First(&user, guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		// Owner global override
 		//if id == owner_override {
@@ -460,7 +460,7 @@ func Ban(ctx *fiber.Ctx) error {
 	}
 	//OVERRIDE:
 	var user models.User
-	database.DatabaseConnection.First(&user, id)
+	database.DatabaseConnection.First(&user, guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -488,7 +488,7 @@ func UnBan(ctx *fiber.Ctx) error {
 	}
 	//OVERRIDE:
 	var user models.User
-	database.DatabaseConnection.First(&user, id)
+	database.DatabaseConnection.First(&user, guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -523,7 +523,7 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	if !user.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
 	}
-	database.DatabaseConnection.Delete(&user).Where("id=?", id)
+	database.DatabaseConnection.Delete(&user).Where("id=?", guuid.MustParse(id))
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Deleted " + user.Name})
 }
@@ -537,7 +537,7 @@ func MakeAdmin(ctx *fiber.Ctx) error {
 	}
 	id := ctx.Params("id")
 	var user models.User
-	database.DatabaseConnection.First(&user, id)
+	database.DatabaseConnection.First(&user, guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
