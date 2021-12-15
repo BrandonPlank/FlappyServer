@@ -399,5 +399,5 @@ func Leaderboard(ctx *fiber.Ctx) error {
 	if len(readUsers) < amount {
 		return ctx.JSON(sortUsers(readUsers))
 	}
-	return ctx.JSON(sortUsers(readUsers[:amount]))
+	return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers[:amount])))
 }
