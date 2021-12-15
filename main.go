@@ -59,7 +59,7 @@ func setupRoutes(app *fiber.App) {
 		}),
 		func(ctx *fiber.Ctx) error {
 			ctx.Append("Access-Control-Allow-Origin", "*")
-			ctx.Append("Developer", "Kayla")
+			ctx.Append("Developer", "crypticplank")
 			ctx.Append("License", "BSD 3-Clause License")
 			return ctx.Next()
 		},
