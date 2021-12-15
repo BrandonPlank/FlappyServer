@@ -182,7 +182,9 @@ func Home(ctx *fiber.Ctx) error {
 	db := database.DatabaseConnection
 	var users []models.User
 	db.Where("is_banned=?", false).Find(&users)
-	users = users[:24]
+	if len(users) > 25 {
+		users = users[:24]
+	}
 	return ctx.Render("main", fiber.Map{
 		"Users":   sortUsers(users),
 		"players": len(users),
