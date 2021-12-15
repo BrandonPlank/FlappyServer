@@ -441,6 +441,8 @@ func RestoreScore(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "That's illegal, this incident will be recorded"})
 	}
 
+	log.Println("[RESTORE]", readUser.Name, "is restoring", user.Name+"'s score to", strconv.Itoa(score)+",was", user.Score)
+
 	database.DatabaseConnection.Model(&user).Update("score", score)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Updated " + user.Name + "'s score"})
@@ -500,6 +502,8 @@ func UnBan(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
 	}
 
+	log.Println("[UNBAN]", readUser.Name, "is unbanning", user.Name)
+
 	database.DatabaseConnection.Model(&user).Update("is_banned", false)
 	database.DatabaseConnection.Model(&user).Update("ban_reason", "")
 
@@ -526,6 +530,9 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	if !user.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
 	}
+
+	log.Println("[DELETE]", readUser.Name, "is deleting", user.Name)
+
 	database.DatabaseConnection.Delete(&user).Where("id=?", guuid.MustParse(id))
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Deleted " + user.Name})
