@@ -50,7 +50,7 @@ func setupRoutes(app *fiber.App) {
 		logger.New(
 			logger.Config{
 				Format:     "${time} [${method}]->${status} Latency->${latency} - ${path} | ${error}\n",
-				TimeFormat: "2006/02/02 15:04:05",
+				TimeFormat: "2006/02/22 15:04:05",
 				Output:     writer,
 			},
 		),
