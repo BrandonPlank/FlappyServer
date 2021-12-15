@@ -472,7 +472,7 @@ func Ban(ctx *fiber.Ctx) error {
 	database.DatabaseConnection.Model(&user).Update("is_banned", true)
 	database.DatabaseConnection.Model(&user).Update("ban_reason", reason)
 
-	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Banned " + user.Name})
 }
 
 func UnBan(ctx *fiber.Ctx) error {
@@ -500,7 +500,7 @@ func UnBan(ctx *fiber.Ctx) error {
 	database.DatabaseConnection.Model(&user).Update("is_banned", false)
 	database.DatabaseConnection.Model(&user).Update("ban_reason", "")
 
-	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Unbanned " + user.Name})
 }
 
 func DeleteUser(ctx *fiber.Ctx) error {
