@@ -79,6 +79,7 @@ func setupRoutes(app *fiber.App) {
 	app.Get("/bans", Bans)
 	app.Get("/user/:name", GetUser)
 
+	v1.Get("/leaderboard/:amount", Leaderboard)
 	v1.Get("/globalDeaths", GlobalDeaths)
 	v1.Get("/userCount", UserCount)
 	v1.Get("/users", GetUsers)
@@ -391,7 +392,12 @@ func GlobalDeaths(ctx *fiber.Ctx) error {
 }
 
 func Leaderboard(ctx *fiber.Ctx) error {
+	amountStr := ctx.Params("amount")
+	amount, _ := strconv.Atoi(amountStr)
 	var readUsers []models.User
 	database.DatabaseConnection.Where("is_banned=?", false).Find(&readUsers)
-	return ctx.JSON(sortUsers(readUsers))
+	if len(readUsers) < amount {
+		return ctx.JSON(sortUsers(readUsers))
+	}
+	return ctx.JSON(sortUsers(readUsers[:amount]))
 }
