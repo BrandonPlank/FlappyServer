@@ -22,7 +22,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
-	//"github.com/markbates/pkger"
 	"kayladev.me/FlappyServer/database"
 	"kayladev.me/FlappyServer/models"
 )
@@ -30,11 +29,12 @@ import (
 const port = 8069
 
 var (
-	secret_token string
-	mutex        = &sync.Mutex{}
-	writer       io.Writer
-	ViewDir      string = "Resources/View/"
-	bootstrap    *template.Template
+	secret_token   string
+	owner_override string
+	mutex          = &sync.Mutex{}
+	writer         io.Writer
+	ViewDir        = "Resources/View/"
+	bootstrap      *template.Template
 )
 
 func initDatabase() {
@@ -61,6 +61,7 @@ func setupRoutes(app *fiber.App) {
 			ctx.Append("Access-Control-Allow-Origin", "*")
 			ctx.Append("Developer", "crypticplank")
 			ctx.Append("License", "BSD 3-Clause License")
+			ctx.Append("Source-Url", "https://github.com/crypticplank/FlappyServer")
 			return ctx.Next()
 		},
 	)
@@ -112,8 +113,12 @@ func main() {
 	if err != nil {
 		log.Fatal("[ERROR] Error loading .env file")
 	}
+
 	secret_token = os.Getenv("SECRET_TOKEN")
+
+	owner_override = os.Getenv("GLOBAL_OWNER_OVERRIDE_KEY")
 	log.Println("[START] Got secret token:", secret_token)
+	log.Println("[START] Got owner override key: " + owner_override[:4] + "***************************")
 
 	// Setup Logging
 	file, err := os.OpenFile("flappyserver.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -413,14 +418,22 @@ func RestoreScore(ctx *fiber.Ctx) error {
 	scoreString := ctx.Params("score")
 	score, _ := strconv.Atoi(scoreString)
 
+	// Owner global override
 	var readUser models.User
 	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	if !readUser.Admin && !readUser.Owner {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
 	var user models.User
 	database.DatabaseConnection.First(&user, id)
 	if user.ID == guuid.Nil || user.ID.String() != id {
+		// Owner global override
+		//if id == owner_override {
+		//	goto OVERRIDE
+		//}
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
-
+	//OVERRIDE:
 	if !readUser.Owner && user.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "That's illegal, this incident will be recorded"})
 	}
@@ -431,11 +444,19 @@ func RestoreScore(ctx *fiber.Ctx) error {
 }
 
 func Ban(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	reason := ctx.Params("reason")
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-	id := ctx.Params("id")
-	reason := ctx.Params("reason")
+	if !readUser.Admin || !readUser.Owner {
+		// Owner global override
+		//if id == owner_override {
+		//	goto OVERRIDE
+		//}
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+	//OVERRIDE:
 	var user models.User
 	database.DatabaseConnection.First(&user, id)
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -453,10 +474,17 @@ func Ban(ctx *fiber.Ctx) error {
 }
 
 func UnBan(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-	id := ctx.Params("id")
+	if !readUser.Admin && !readUser.Owner {
+		//if id == owner_override {
+		//	goto OVERRIDE
+		//}
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+	//OVERRIDE:
 	var user models.User
 	database.DatabaseConnection.First(&user, id)
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -474,13 +502,17 @@ func UnBan(ctx *fiber.Ctx) error {
 }
 
 func DeleteUser(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-	if !readUser.Admin {
+	if !readUser.Admin && !readUser.Owner {
+		//if id == owner_override {
+		//	goto OVERRIDE
+		//}
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
-	id := ctx.Params("id")
+	//OVERRIDE:
 	var user models.User
 	database.DatabaseConnection.First(&user, id)
 	if user.ID == guuid.Nil || user.ID.String() != id {
