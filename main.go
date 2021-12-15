@@ -93,7 +93,12 @@ func setupRoutes(app *fiber.App) {
 	authv1.Post("/hasHackedTools", HasHackedTools)
 	authv1.Post("/login", Login)
 
-	authv1.Get("/internal_users", InternalUsers)
+	authv1.Get("/internalUsers", InternalUsers)
+	authv1.Get("/ban/:id/:reason", Ban)
+	authv1.Get("/makeAdmin/:id", MakeAdmin)
+	authv1.Get("/unban/:id", UnBan)
+	authv1.Get("/delete/:id", DeleteUser)
+	authv1.Get("/restoreScore/:id/:score", RestoreScore)
 }
 
 func main() {
@@ -172,7 +177,7 @@ func Home(ctx *fiber.Ctx) error {
 	db := database.DatabaseConnection
 	var users []models.User
 	db.Where("is_banned=?", false).Find(&users)
-	users = users[:24] // 0 ... 24 = 25 
+	users = users[:24]
 	return ctx.Render("main", fiber.Map{
 		"Users":   sortUsers(users),
 		"players": len(users),
@@ -316,9 +321,8 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	log.Println("[SCORE] User:", name, "[ID:"+readUser.ID.String()+"] submitted score:", data.Score, "took", data.Time, "seconds.")
 
 	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
-		readUser.IsBanned = true
-		readUser.BanReason = "Cheating (Anti cheat)"
-		database.DatabaseConnection.Update(&readUser)
+		database.DatabaseConnection.Model(&readUser).Update("is_banned", true)
+		database.DatabaseConnection.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
 	}
 
 	if data.Score > readUser.Score {
@@ -401,4 +405,110 @@ func Leaderboard(ctx *fiber.Ctx) error {
 		return ctx.JSON(sortUsers(readUsers))
 	}
 	return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers[:amount])))
+}
+
+func RestoreScore(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	id := ctx.Params("id")
+	scoreString := ctx.Params("score")
+	score, _ := strconv.Atoi(scoreString)
+
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	var user models.User
+	database.DatabaseConnection.First(&user, id)
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+
+	if !readUser.Owner && user.Owner {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "That's illegal, this incident will be recorded"})
+	}
+
+	database.DatabaseConnection.Model(&user).Update("score", score)
+
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Updated " + user.Name + "'s score"})
+}
+
+func Ban(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	id := ctx.Params("id")
+	reason := ctx.Params("reason")
+	var user models.User
+	database.DatabaseConnection.First(&user, id)
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+
+	if user.Owner || user.Admin {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	}
+
+	database.DatabaseConnection.Model(&user).Update("is_banned", true)
+	database.DatabaseConnection.Model(&user).Update("ban_reason", reason)
+
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
+}
+
+func UnBan(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	id := ctx.Params("id")
+	var user models.User
+	database.DatabaseConnection.First(&user, id)
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+
+	if user.Owner || user.Admin {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	}
+
+	database.DatabaseConnection.Model(&user).Update("is_banned", false)
+	database.DatabaseConnection.Model(&user).Update("ban_reason", "")
+
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
+}
+
+func DeleteUser(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	if !readUser.Admin {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+	id := ctx.Params("id")
+	var user models.User
+	database.DatabaseConnection.First(&user, id)
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+	if !user.Owner {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	}
+	database.DatabaseConnection.Delete(&user).Where("id=?", id)
+
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Deleted " + user.Name})
+}
+
+func MakeAdmin(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	if !readUser.Owner {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+	id := ctx.Params("id")
+	var user models.User
+	database.DatabaseConnection.First(&user, id)
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+
+	database.DatabaseConnection.Model(&user).Update("admin", true)
+
+	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
 }
