@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -468,9 +469,11 @@ func Ban(ctx *fiber.Ctx) error {
 	if user.Owner || user.Admin {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
 	}
+	format, _ := url.QueryUnescape(reason)
+	log.Println("[BAN]", readUser.Name, "is banning", user.Name+", reason:", format)
 
 	database.DatabaseConnection.Model(&user).Update("is_banned", true)
-	database.DatabaseConnection.Model(&user).Update("ban_reason", reason)
+	database.DatabaseConnection.Model(&user).Update("ban_reason", format)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Banned " + user.Name})
 }
