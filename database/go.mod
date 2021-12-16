@@ -1,4 +1,4 @@
-module kayladev.me/FlappyServer/database
+module brandonplank.org/FlappyServer/database
 
 go 1.17
 
