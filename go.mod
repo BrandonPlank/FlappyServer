@@ -1,15 +1,15 @@
-module kayladev.me/FlappyServer
+module brandonplank.org/FlappyServer
 
 go 1.17
 
 require (
-	kayladev.me/FlappyServer/database v0.0.0
-	kayladev.me/FlappyServer/models v0.0.0
+	brandonplank.org/FlappyServer/database v0.0.0
+	brandonplank.org/FlappyServer/models v0.0.0
 )
 
 replace (
-	kayladev.me/FlappyServer/database => ./database
-	kayladev.me/FlappyServer/models => ./models
+	brandonplank.org/FlappyServer/database => ./database
+	brandonplank.org/FlappyServer/models => ./models
 )
 
 require (
