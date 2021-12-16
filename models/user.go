@@ -9,7 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"golang.org/x/crypto/bcrypt"
-	"kayladev.me/FlappyServer/database"
+	"brandonplank.org/FlappyServer/database"
 )
 
 
