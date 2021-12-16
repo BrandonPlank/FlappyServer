@@ -23,8 +23,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
-	"kayladev.me/FlappyServer/database"
-	"kayladev.me/FlappyServer/models"
+	"brandonplank.org/FlappyServer/database"
+	"brandonplank.org/FlappyServer/models"
 )
 
 const port = 8069
