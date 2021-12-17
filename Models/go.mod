@@ -9,4 +9,4 @@ require (
 	brandonplank.org/FlappyServer/database v0.0.0
 )
 
-replace brandonplank.org/FlappyServer/database => ./../database
+replace brandonplank.org/FlappyServer/database => ./../Database
