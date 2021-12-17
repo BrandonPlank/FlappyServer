@@ -85,6 +85,7 @@ func setupRoutes(app *fiber.App) {
 	authv1.Get("/unban/:id", routes.UnBan)
 	authv1.Get("/delete/:id", routes.DeleteUser)
 	authv1.Get("/restoreScore/:id/:score", routes.RestoreScore)
+	authv1.Get("/logs", routes.ServerLogFile)
 }
 
 func main() {

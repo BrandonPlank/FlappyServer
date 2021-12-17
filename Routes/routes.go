@@ -10,8 +10,10 @@ import (
 	guuid "github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"golang.org/x/crypto/bcrypt"
+	"io"
 	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -338,9 +340,12 @@ func Ban(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	if user.Owner || user.Admin {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	if readUser.Admin && !readUser.Owner {
+		if user.Admin || user.Owner {
+			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot ban another admin"})
+		}
 	}
+
 	format, _ := url.QueryUnescape(reason)
 	log.Println("[BAN]", readUser.Name, "is banning", user.Name+", reason:", format)
 
@@ -368,8 +373,10 @@ func UnBan(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	if user.Owner || user.Admin {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	if readUser.Admin && !readUser.Owner {
+		if user.Admin || user.Owner {
+			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot unban another admin"})
+		}
 	}
 
 	log.Println("[UNBAN]", readUser.Name, "is unbanning", user.Name)
@@ -397,8 +404,11 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
-	if !user.Owner {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+
+	if readUser.Admin && !readUser.Owner {
+		if user.Admin || user.Owner {
+			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+		}
 	}
 
 	log.Println("[DELETE]", readUser.Name, "is deleting", user.Name)
@@ -425,4 +435,20 @@ func MakeAdmin(ctx *fiber.Ctx) error {
 	database.DatabaseConnection.Model(&user).Update("admin", true)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
+}
+
+func ServerLogFile(ctx *fiber.Ctx) error {
+	name := ctx.Locals("name")
+	var readUser models.User
+	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	if !readUser.Owner {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
+	}
+
+	file, err := os.Open("flappyserver.log")
+	HandleError(err)
+	defer file.Close()
+	var reader io.Reader
+	reader = file
+	return ctx.SendStream(reader)
 }
