@@ -89,13 +89,21 @@ func setupRoutes(app *fiber.App) {
 }
 
 func main() {
+
+	// Setup Logging
+	file, err := os.OpenFile("flappyserver.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	routes.HandleError(err)
+	defer file.Close()
+	global.Writer = io.MultiWriter(os.Stdout, file)
+	log.SetOutput(global.Writer)
+
 	myFigure := figure.NewFigure("FlappyBird Server", "", true)
 	myFigure.Print()
 
 	log.Println("[START] Starting the FlappyBird REST server")
 
 	// Setup dotenv
-	err := godotenv.Load()
+	err = godotenv.Load()
 	if err != nil {
 		log.Fatal("[ERROR] Error loading .env file")
 	}
@@ -105,13 +113,6 @@ func main() {
 	global.OWNER_OVERRIDE = os.Getenv("GLOBAL_OWNER_OVERRIDE_KEY")
 	log.Println("[START] Got secret token:", global.SECRET_TOKEN)
 	log.Println("[START] Got owner override key: " + global.OWNER_OVERRIDE[:4] + "***************************")
-
-	// Setup Logging
-	file, err := os.OpenFile("flappyserver.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	routes.HandleError(err)
-	defer file.Close()
-	global.Writer = io.MultiWriter(os.Stdout, file)
-	log.SetOutput(global.Writer)
 
 	//Setup views
 	engine := html.New("./Resources/Views", ".html")
