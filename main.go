@@ -116,7 +116,7 @@ func main() {
 
 	//Setup views
 	engine := html.New("./Resources/Views", ".html")
-	//engine.Reload(true)
+	engine.Reload(true)
 	//engine.Debug(true)
 
 	router := fiber.New(fiber.Config{DisableStartupMessage: true, Views: engine})
