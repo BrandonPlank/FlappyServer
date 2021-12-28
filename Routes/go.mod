@@ -25,6 +25,6 @@ require (
 
 replace (
 	brandonplank.org/FlappyServer/database => ./../Database
-	brandonplank.org/FlappyServer/models => ./../Models
 	brandonplank.org/FlappyServer/global => ./../Global
+	brandonplank.org/FlappyServer/models => ./../Models
 )

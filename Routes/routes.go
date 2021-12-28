@@ -282,7 +282,7 @@ func Leaderboard(ctx *fiber.Ctx) error {
 	var readUsers []models.User
 	database.DatabaseConnection.Where("is_banned=?", false).Find(&readUsers)
 	if len(readUsers) < amount {
-		return ctx.JSON(sortUsers(readUsers))
+		return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers)))
 	}
 	return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers[:amount])))
 }
