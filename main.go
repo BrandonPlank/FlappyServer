@@ -42,13 +42,13 @@ func setupRoutes(app *fiber.App) {
 		cors.New(cors.Config{
 			AllowCredentials: true,
 		}),
-		func(ctx *fiber.Ctx) error {
-			ctx.Append("Access-Control-Allow-Origin", "*")
-			ctx.Append("Developer", "Brandon Plank")
-			ctx.Append("License", "BSD 3-Clause License")
-			ctx.Append("Source-Url", "https://github.com/brandonplank/FlappyServer")
-			return ctx.Next()
-		},
+		//func(ctx *fiber.Ctx) error {
+		//	ctx.Append("Access-Control-Allow-Origin", "*")
+		//	ctx.Append("Developer", "Brandon Plank")
+		//	ctx.Append("License", "BSD 3-Clause License")
+		//	ctx.Append("Source-Url", "https://github.com/brandonplank/FlappyServer")
+		//	return ctx.Next()
+		//},
 	)
 
 	app.Static("/", "./Public")
