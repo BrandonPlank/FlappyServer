@@ -18,6 +18,8 @@ import (
 	"strings"
 )
 
+var db = database.DatabaseConnection
+
 func countDeaths(users []models.User) int {
 	total := 0
 	for i := 0; i < len(users); i++ {
@@ -52,23 +54,24 @@ func HandleError(err error) bool {
 }
 
 func Home(ctx *fiber.Ctx) error {
-	db := database.DatabaseConnection
 	var users []models.User
 	db.Where("is_banned=?", false).Find(&users)
+	deaths := countDeaths(users)
+	players := len(users)
 	if len(users) > 25 {
 		users = users[:25]
 	}
 	return ctx.Render("main", fiber.Map{
 		"Users":   sortUsers(users),
-		"players": len(users),
-		"deaths":  countDeaths(users),
+		"players": players,
+		"deaths":  deaths,
 	})
 }
 
 func GetUser(ctx *fiber.Ctx) error {
 	name := ctx.Params("name")
 	var user models.User
-	database.DatabaseConnection.Where("name=? ", name).First(&user)
+	db.Where("name=? ", name).First(&user)
 
 	gotUser := true
 
@@ -88,7 +91,6 @@ func GetUser(ctx *fiber.Ctx) error {
 }
 
 func Bans(ctx *fiber.Ctx) error {
-	db := database.DatabaseConnection
 	var users []models.User
 	db.Where("is_banned=?", true).Find(&users)
 
@@ -98,7 +100,6 @@ func Bans(ctx *fiber.Ctx) error {
 }
 
 func GetUsers(ctx *fiber.Ctx) error {
-	db := database.DatabaseConnection
 	var users []models.User
 	db.Where("is_banned=?", false).Find(&users)
 	return ctx.JSON(models.ConvertUsersToPublicUsers(users))
@@ -107,10 +108,9 @@ func GetUsers(ctx *fiber.Ctx) error {
 func InternalUsers(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 
 	if readUser.Admin || readUser.Owner {
-		db := database.DatabaseConnection
 		var users []models.User
 		db.Find(&users)
 		return ctx.JSON(users)
@@ -140,7 +140,7 @@ func RegisterUser(ctx *fiber.Ctx) error {
 
 	var readUser models.User
 
-	database.DatabaseConnection.Where("name=?", data["name"]).First(&readUser)
+	db.Where("name=?", data["name"]).First(&readUser)
 
 	if readUser.Name == data["name"] {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"message": "User exists"})
@@ -153,7 +153,7 @@ func RegisterUser(ctx *fiber.Ctx) error {
 		PasswordHash: string(password),
 	}
 
-	database.DatabaseConnection.Create(&user)
+	db.Create(&user)
 
 	return ctx.JSON(user)
 }
@@ -162,7 +162,7 @@ func Login(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 
 	var readUser models.User
-	database.DatabaseConnection.First(&readUser, "name=?", name)
+	db.First(&readUser, "name=?", name)
 
 	// We need user accounts, so allow login to create accounts
 	if readUser.ID == guuid.Nil || readUser.Name != name {
@@ -171,7 +171,7 @@ func Login(ctx *fiber.Ctx) error {
 		HandleError(err)
 
 		// Do another query to get user
-		database.DatabaseConnection.Where("name=?", name).First(&readUser)
+		db.Where("name=?", name).First(&readUser)
 		if readUser.ID == guuid.Nil || readUser.Name != name {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Undefined error"})
 		}
@@ -187,7 +187,7 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 
 	current := sha256.Sum256([]byte(strconv.Itoa(data.Score) + global.SECRET_TOKEN + strconv.Itoa(data.Time)))
 	currentVerify := hex.EncodeToString(current[:])
@@ -201,12 +201,12 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	log.Println("[SCORE] User:", name, "[ID:"+readUser.ID.String()+"] submitted score:", data.Score, "took", data.Time, "seconds.")
 
 	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
-		database.DatabaseConnection.Model(&readUser).Update("is_banned", true)
-		database.DatabaseConnection.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
+		db.Model(&readUser).Update("is_banned", true)
+		db.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
 	}
 
 	if data.Score > readUser.Score {
-		database.DatabaseConnection.Model(&readUser).Update("score", data.Score)
+		db.Model(&readUser).Update("score", data.Score)
 		log.Println("[SCORE] Processed score for", name)
 	}
 
@@ -215,46 +215,40 @@ func SubmitScore(ctx *fiber.Ctx) error {
 
 func SubmitDeath(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
-
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-
-	database.DatabaseConnection.Model(&readUser).Update("deaths", readUser.Deaths+1)
-
+	db.Where("name=?", name).First(&readUser)
+	db.Model(&readUser).Update("deaths", readUser.Deaths+1)
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
 func IsJailbroken(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
-
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-
-	database.DatabaseConnection.Model(&readUser).Update("is_jailbroken", true)
-
+	db.Where("name=?", name).First(&readUser)
+	db.Model(&readUser).Update("is_jailbroken", true)
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
 func Emulator(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-	database.DatabaseConnection.Model(&readUser).Update("ran_in_emulator", true)
+	db.Where("name=?", name).First(&readUser)
+	db.Model(&readUser).Update("ran_in_emulator", true)
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
 func HasHackedTools(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
-	database.DatabaseConnection.Model(&readUser).Update("has_hacked_tools", true)
+	db.Where("name=?", name).First(&readUser)
+	db.Model(&readUser).Update("has_hacked_tools", true)
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
 func GetID(ctx *fiber.Ctx) error {
 	name := ctx.Params("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if readUser.ID == guuid.Nil || readUser.Name != name {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -263,7 +257,7 @@ func GetID(ctx *fiber.Ctx) error {
 
 func UserCount(ctx *fiber.Ctx) error {
 	var readUsers []models.User
-	database.DatabaseConnection.Where("is_banned=?", false).Find(&readUsers)
+	db.Where("is_banned=?", false).Find(&readUsers)
 	if len(readUsers) < 1 {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{"message": "No users in the database"})
 	}
@@ -272,7 +266,7 @@ func UserCount(ctx *fiber.Ctx) error {
 
 func GlobalDeaths(ctx *fiber.Ctx) error {
 	var readUsers []models.User
-	database.DatabaseConnection.Where("is_banned=?", false).Find(&readUsers)
+	db.Where("is_banned=?", false).Find(&readUsers)
 	return ctx.SendString(strconv.Itoa(countDeaths(readUsers)))
 }
 
@@ -280,7 +274,7 @@ func Leaderboard(ctx *fiber.Ctx) error {
 	amountStr := ctx.Params("amount")
 	amount, _ := strconv.Atoi(amountStr)
 	var readUsers []models.User
-	database.DatabaseConnection.Where("is_banned=?", false).Find(&readUsers)
+	db.Where("is_banned=?", false).Find(&readUsers)
 	if len(readUsers) < amount {
 		return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers)))
 	}
@@ -295,12 +289,12 @@ func RestoreScore(ctx *fiber.Ctx) error {
 
 	// Owner global override
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Admin && !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	var user models.User
-	database.DatabaseConnection.First(&user, "id=?", guuid.MustParse(id))
+	db.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		// Owner global override
 		//if id == owner_override {
@@ -315,7 +309,7 @@ func RestoreScore(ctx *fiber.Ctx) error {
 
 	log.Println("[RESTORE]", readUser.Name, "is restoring", user.Name+"'s score to", strconv.Itoa(score)+",was", user.Score)
 
-	database.DatabaseConnection.Model(&user).Update("score", score)
+	db.Model(&user).Update("score", score)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Updated " + user.Name + "'s score"})
 }
@@ -325,7 +319,7 @@ func Ban(ctx *fiber.Ctx) error {
 	reason := ctx.Params("reason")
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Admin || !readUser.Owner {
 		// Owner global override
 		//if id == owner_override {
@@ -335,7 +329,7 @@ func Ban(ctx *fiber.Ctx) error {
 	}
 	//OVERRIDE:
 	var user models.User
-	database.DatabaseConnection.First(&user, "id=?", guuid.MustParse(id))
+	db.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -349,8 +343,8 @@ func Ban(ctx *fiber.Ctx) error {
 	format, _ := url.QueryUnescape(reason)
 	log.Println("[BAN]", readUser.Name, "is banning", user.Name+", reason:", format)
 
-	database.DatabaseConnection.Model(&user).Update("is_banned", true)
-	database.DatabaseConnection.Model(&user).Update("ban_reason", format)
+	db.Model(&user).Update("is_banned", true)
+	db.Model(&user).Update("ban_reason", format)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Banned " + user.Name})
 }
@@ -359,7 +353,7 @@ func UnBan(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Admin && !readUser.Owner {
 		//if id == owner_override {
 		//	goto OVERRIDE
@@ -368,7 +362,7 @@ func UnBan(ctx *fiber.Ctx) error {
 	}
 	//OVERRIDE:
 	var user models.User
-	database.DatabaseConnection.First(&user, "id=?", guuid.MustParse(id))
+	db.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -381,8 +375,8 @@ func UnBan(ctx *fiber.Ctx) error {
 
 	log.Println("[UNBAN]", readUser.Name, "is unbanning", user.Name)
 
-	database.DatabaseConnection.Model(&user).Update("is_banned", false)
-	database.DatabaseConnection.Model(&user).Update("ban_reason", "")
+	db.Model(&user).Update("is_banned", false)
+	db.Model(&user).Update("ban_reason", "")
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Unbanned " + user.Name})
 }
@@ -391,7 +385,7 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Admin && !readUser.Owner {
 		//if id == owner_override {
 		//	goto OVERRIDE
@@ -400,7 +394,7 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	}
 	//OVERRIDE:
 	var user models.User
-	database.DatabaseConnection.First(&user, "id=?", guuid.MustParse(id))
+	db.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
@@ -413,7 +407,7 @@ func DeleteUser(ctx *fiber.Ctx) error {
 
 	log.Println("[DELETE]", readUser.Name, "is deleting", user.Name)
 
-	database.DatabaseConnection.Delete(&user).Where("id=?", guuid.MustParse(id))
+	db.Delete(&user).Where("id=?", guuid.MustParse(id))
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Deleted " + user.Name})
 }
@@ -421,18 +415,18 @@ func DeleteUser(ctx *fiber.Ctx) error {
 func MakeAdmin(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	id := ctx.Params("id")
 	var user models.User
-	database.DatabaseConnection.First(&user, "id=?", guuid.MustParse(id))
+	db.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	database.DatabaseConnection.Model(&user).Update("admin", true)
+	db.Model(&user).Update("admin", true)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
 }
@@ -440,7 +434,7 @@ func MakeAdmin(ctx *fiber.Ctx) error {
 func ServerLogFile(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
-	database.DatabaseConnection.Where("name=?", name).First(&readUser)
+	db.Where("name=?", name).First(&readUser)
 	if !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
