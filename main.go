@@ -44,9 +44,9 @@ func setupRoutes(app *fiber.App) {
 		}),
 		func(ctx *fiber.Ctx) error {
 			ctx.Append("Access-Control-Allow-Origin", "*")
-			ctx.Append("Developer", "crypticplank")
+			ctx.Append("Developer", "Brandon Plank")
 			ctx.Append("License", "BSD 3-Clause License")
-			ctx.Append("Source-Url", "https://github.com/crypticplank/FlappyServer")
+			ctx.Append("Source-Url", "https://github.com/brandonplank/FlappyServer")
 			return ctx.Next()
 		},
 	)
