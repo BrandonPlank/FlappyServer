@@ -69,7 +69,7 @@ func Auth(name string, password string) bool {
 
 	var user User
 
-	database.DatabaseConnection.Where("name=?", name).First(&user)
+	database.DB.Where("name=?", name).First(&user)
 
 	if user.ID == guuid.Nil {
 		return false

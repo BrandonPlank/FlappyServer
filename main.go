@@ -24,10 +24,10 @@ const port = 8069
 
 func initDatabase() {
 	var err error
-	database.DatabaseConnection, err = gorm.Open("sqlite3", "flappybird.db")
+	database.DB, err = gorm.Open("sqlite3", "flappybird.db")
 	routes.HandleError(err)
 	log.Println("[DATABASE] Connection Opened to Database")
-	database.DatabaseConnection.AutoMigrate(&models.User{})
+	database.DB.AutoMigrate(&models.User{})
 }
 
 func setupRoutes(app *fiber.App) {
@@ -129,5 +129,5 @@ func main() {
 	log.Println("[START] Starting server on port", strconv.Itoa(port))
 	log.Fatalln(router.Listen(":" + strconv.Itoa(port)))
 
-	defer database.DatabaseConnection.Close()
+	defer database.DB.Close()
 }
