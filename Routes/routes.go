@@ -54,13 +54,14 @@ func HandleError(err error) bool {
 func Home(ctx *fiber.Ctx) error {
 	var users []models.User
 	database.DB.Where("is_banned=?", false).Find(&users)
+	users = sortUsers(users)
 	deaths := countDeaths(users)
 	players := len(users)
 	if len(users) > 25 {
 		users = users[:25]
 	}
 	return ctx.Render("main", fiber.Map{
-		"Users":   sortUsers(users),
+		"Users":   users,
 		"players": players,
 		"deaths":  deaths,
 	})
