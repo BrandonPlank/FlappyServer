@@ -6,16 +6,17 @@ import (
 	"brandonplank.org/FlappyServer/models"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/gofiber/fiber/v2"
 	"io"
 	"log"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func countDeaths(users []models.User) int {
@@ -64,6 +65,7 @@ func Home(ctx *fiber.Ctx) error {
 		"Users":   users,
 		"players": players,
 		"deaths":  deaths,
+		"year":    time.Now().Format("2006"),
 	})
 }
 
@@ -86,6 +88,7 @@ func GetUser(ctx *fiber.Ctx) error {
 		"deaths":    user.Deaths,
 		"id":        user.ID.String(),
 		"user":      gotUser,
+		"year":      time.Now().Format("2006"),
 	})
 }
 
@@ -95,6 +98,7 @@ func Bans(ctx *fiber.Ctx) error {
 
 	return ctx.Render("bans", fiber.Map{
 		"Users": users,
+		"year":  time.Now().Format("2006"),
 	})
 }
 

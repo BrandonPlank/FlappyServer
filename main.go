@@ -109,8 +109,16 @@ func main() {
 	}
 
 	global.SECRET_TOKEN = os.Getenv("SECRET_TOKEN")
-
 	global.OWNER_OVERRIDE = os.Getenv("GLOBAL_OWNER_OVERRIDE_KEY")
+
+	if len(global.SECRET_TOKEN) < 1 {
+		log.Fatal("To start the server, you must have SECRET_TOKEN defined in .env")
+	}
+
+	if len(global.OWNER_OVERRIDE) <= 4 {
+		log.Fatal("To start the server, you must have OWNER_OVERRIDE defined in .env, must be more than 4 letters")
+	}
+
 	log.Println("[START] Got secret token:", global.SECRET_TOKEN)
 	log.Println("[START] Got owner override key: " + global.OWNER_OVERRIDE[:4] + "***************************")
 
