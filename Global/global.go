@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	SECRET_TOKEN   string
-	OWNER_OVERRIDE string
-	Mutex          = &sync.Mutex{}
-	Writer         io.Writer
-	ViewDir        = "Resources/View/"
-	BootStrap      *template.Template
+	SecretToken   string
+	OwnerOverride string
+	Mutex         = &sync.Mutex{}
+	Writer        io.Writer
+	ViewDir       = "Resources/View/"
+	BootStrap     *template.Template
 )

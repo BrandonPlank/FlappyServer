@@ -6,10 +6,10 @@ import (
 	"brandonplank.org/FlappyServer/models"
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/gofiber/fiber/v2"
 	"io"
 	"log"
 	"net/url"
@@ -192,7 +192,7 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
 
-	current := sha256.Sum256([]byte(strconv.Itoa(data.Score) + global.SECRET_TOKEN + strconv.Itoa(data.Time)))
+	current := sha256.Sum256([]byte(strconv.Itoa(data.Score) + global.SecretToken + strconv.Itoa(data.Time)))
 	currentVerify := hex.EncodeToString(current[:])
 
 	if data.Verify != currentVerify {
@@ -228,7 +228,7 @@ func IsJailbroken(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
-	database.DB.Model(&readUser).Update("is_jailbroken", true)
+	database.DB.Model(&readUser).Update("jailbroken", true)
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
