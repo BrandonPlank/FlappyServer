@@ -80,5 +80,6 @@ func Auth(name string, password string) bool {
 	if err != nil {
 		return false
 	}
+	
 	return true
 }

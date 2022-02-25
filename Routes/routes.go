@@ -102,13 +102,15 @@ func Bans(ctx *fiber.Ctx) error {
 	})
 }
 
-func GetUsers(ctx *fiber.Ctx) error {
+// MARK: v1
+
+func V1GetUsers(ctx *fiber.Ctx) error {
 	var users []models.User
 	database.DB.Where("is_banned=?", false).Find(&users)
 	return ctx.JSON(models.ConvertUsersToPublicUsers(users))
 }
 
-func InternalUsers(ctx *fiber.Ctx) error {
+func V1InternalUsers(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -122,7 +124,7 @@ func InternalUsers(ctx *fiber.Ctx) error {
 	}
 }
 
-func RegisterUser(ctx *fiber.Ctx) error {
+func V1RegisterUser(ctx *fiber.Ctx) error {
 	var data map[string]string
 	err := ctx.BodyParser(&data)
 	HandleError(err)
@@ -161,7 +163,7 @@ func RegisterUser(ctx *fiber.Ctx) error {
 	return ctx.JSON(user)
 }
 
-func Login(ctx *fiber.Ctx) error {
+func V1Login(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 
 	var readUser models.User
@@ -170,7 +172,7 @@ func Login(ctx *fiber.Ctx) error {
 	// We need user accounts, so allow login to create accounts
 	if readUser.ID == guuid.Nil || readUser.Name != name {
 		// Create account
-		err := RegisterUser(ctx)
+		err := V1RegisterUser(ctx)
 		HandleError(err)
 
 		// Do another query to get user
@@ -182,7 +184,7 @@ func Login(ctx *fiber.Ctx) error {
 	return ctx.JSON(readUser)
 }
 
-func SubmitScore(ctx *fiber.Ctx) error {
+func V1SubmitScore(ctx *fiber.Ctx) error {
 	var data models.Score
 	err := ctx.BodyParser(&data)
 	HandleError(err)
@@ -203,7 +205,7 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	log.Println("[SCORE] Score verification passed for", name)
 	log.Println("[SCORE] User:", name, "[ID:"+readUser.ID.String()+"] submitted score:", data.Score, "took", data.Time, "seconds.")
 
-	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
+	if data.Time+1000 < data.Score || data.Time-1000 > data.Score && !readUser.Admin {
 		database.DB.Model(&readUser).Update("is_banned", true)
 		database.DB.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
 	}
@@ -216,7 +218,7 @@ func SubmitScore(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
-func SubmitDeath(ctx *fiber.Ctx) error {
+func V1SubmitDeath(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -224,7 +226,7 @@ func SubmitDeath(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
-func IsJailbroken(ctx *fiber.Ctx) error {
+func V1IsJailbroken(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -232,7 +234,7 @@ func IsJailbroken(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
-func Emulator(ctx *fiber.Ctx) error {
+func V1Emulator(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -240,7 +242,7 @@ func Emulator(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
-func HasHackedTools(ctx *fiber.Ctx) error {
+func V1HasHackedTools(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -248,7 +250,7 @@ func HasHackedTools(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Success"})
 }
 
-func GetID(ctx *fiber.Ctx) error {
+func V1GetID(ctx *fiber.Ctx) error {
 	name := ctx.Params("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -258,7 +260,7 @@ func GetID(ctx *fiber.Ctx) error {
 	return ctx.SendString(readUser.ID.String())
 }
 
-func UserCount(ctx *fiber.Ctx) error {
+func V1UserCount(ctx *fiber.Ctx) error {
 	var readUsers []models.User
 	database.DB.Where("is_banned=?", false).Find(&readUsers)
 	if len(readUsers) < 1 {
@@ -267,13 +269,13 @@ func UserCount(ctx *fiber.Ctx) error {
 	return ctx.SendString(strconv.Itoa(len(readUsers)))
 }
 
-func GlobalDeaths(ctx *fiber.Ctx) error {
+func V1GlobalDeaths(ctx *fiber.Ctx) error {
 	var readUsers []models.User
 	database.DB.Where("is_banned=?", false).Find(&readUsers)
 	return ctx.SendString(strconv.Itoa(countDeaths(readUsers)))
 }
 
-func Leaderboard(ctx *fiber.Ctx) error {
+func V1Leaderboard(ctx *fiber.Ctx) error {
 	amountStr := ctx.Params("amount")
 	amount, _ := strconv.Atoi(amountStr)
 	var readUsers []models.User
@@ -284,7 +286,7 @@ func Leaderboard(ctx *fiber.Ctx) error {
 	return ctx.JSON(models.ConvertUsersToPublicUsers(sortUsers(readUsers[:amount])))
 }
 
-func RestoreScore(ctx *fiber.Ctx) error {
+func V1RestoreScore(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	id := ctx.Params("id")
 	scoreString := ctx.Params("score")
@@ -317,7 +319,7 @@ func RestoreScore(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Updated " + user.Name + "'s score"})
 }
 
-func Ban(ctx *fiber.Ctx) error {
+func V1Ban(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	reason := ctx.Params("reason")
 	name := ctx.Locals("name")
@@ -352,7 +354,7 @@ func Ban(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Banned " + user.Name})
 }
 
-func UnBan(ctx *fiber.Ctx) error {
+func V1UnBan(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
@@ -384,7 +386,7 @@ func UnBan(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Unbanned " + user.Name})
 }
 
-func DeleteUser(ctx *fiber.Ctx) error {
+func V1DeleteUser(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	name := ctx.Locals("name")
 	var readUser models.User
@@ -415,7 +417,7 @@ func DeleteUser(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Deleted " + user.Name})
 }
 
-func MakeAdmin(ctx *fiber.Ctx) error {
+func V1MakeAdmin(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
@@ -434,7 +436,7 @@ func MakeAdmin(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Made " + user.Name + " an admin"})
 }
 
-func ServerLogFile(ctx *fiber.Ctx) error {
+func V1ServerLogFile(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
