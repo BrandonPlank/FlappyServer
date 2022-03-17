@@ -205,7 +205,7 @@ func V1SubmitScore(ctx *fiber.Ctx) error {
 	log.Println("[SCORE] Score verification passed for", name)
 	log.Println("[SCORE] User:", name, "[ID:"+readUser.ID.String()+"] submitted score:", data.Score, "took", data.Time, "seconds.")
 
-	if data.Time+1000 < data.Score || data.Time-1000 > data.Score && !readUser.Admin {
+	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
 		database.DB.Model(&readUser).Update("is_banned", true)
 		database.DB.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
 	}
