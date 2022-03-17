@@ -374,10 +374,22 @@ func V1Ban(ctx *fiber.Ctx) error {
 	}
 
 	format, _ := url.QueryUnescape(reason)
-	log.Println("[BAN]", readUser.Name, "is banning", user.Name+", reason:", format)
 
 	database.DB.Model(&user).Update("is_banned", true)
 	database.DB.Model(&user).Update("ban_reason", format)
+
+	log.Println(fmt.Sprintf("[BAN] %s Banned %s: %s", readUser.Name, user.Name, format))
+	_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
+		{
+			Title:       fmt.Sprintf("%s banned %s", readUser.Name, user.Name),
+			Description: fmt.Sprintf("%s has been banned for %s", user.Name, format),
+			Color:       16734296,
+			Footer: &discord.EmbedFooter{
+				Text:    "Flappybird API",
+				IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
+			},
+		},
+	})
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Banned " + user.Name})
 }
@@ -406,10 +418,21 @@ func V1UnBan(ctx *fiber.Ctx) error {
 		}
 	}
 
-	log.Println("[UNBAN]", readUser.Name, "is unbanning", user.Name)
-
 	database.DB.Model(&user).Update("is_banned", false)
 	database.DB.Model(&user).Update("ban_reason", "")
+
+	log.Println(fmt.Sprintf("[UNBAN] %s unbanned %s", readUser.Name, user.Name))
+	_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
+		{
+			Title:       fmt.Sprintf("%s unbanned %s", readUser.Name, user.Name),
+			Description: fmt.Sprintf("%s has been unbanned", user.Name),
+			Color:       16734296,
+			Footer: &discord.EmbedFooter{
+				Text:    "Flappybird API",
+				IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
+			},
+		},
+	})
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Unbanned " + user.Name})
 }
