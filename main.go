@@ -5,6 +5,9 @@ import (
 	"brandonplank.org/FlappyServer/global"
 	"brandonplank.org/FlappyServer/models"
 	"brandonplank.org/FlappyServer/routes"
+	"context"
+	"github.com/DisgoOrg/disgo/webhook"
+	"github.com/DisgoOrg/snowflake"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -44,9 +47,9 @@ func setupRoutes(app *fiber.App) {
 		}),
 		func(ctx *fiber.Ctx) error {
 			ctx.Append("Access-Control-Allow-Origin", "*")
-			ctx.Append("Developer", "Brandon Plank")
+			ctx.Append("Developer", "crypticplank")
 			ctx.Append("License", "BSD 3-Clause License")
-			ctx.Append("Source-Url", "https://github.com/brandonplank/FlappyServer")
+			ctx.Append("Source-Url", "https://github.com/crypticplank/FlappyServer")
 			return ctx.Next()
 		},
 	)
@@ -100,6 +103,8 @@ func main() {
 	myFigure := figure.NewFigure("FlappyBird Server", "", true)
 	myFigure.Print()
 
+	log.Println("[START] Started discord webhooks")
+
 	log.Println("[START] Starting the FlappyBird REST server")
 
 	// Setup dotenv
@@ -110,6 +115,13 @@ func main() {
 
 	global.SecretToken = os.Getenv("SECRET_TOKEN")
 	global.OwnerOverride = os.Getenv("GLOBAL_OWNER_OVERRIDE_KEY")
+
+	log.Println("[START] Starting webhooks")
+
+	global.BansClient = webhook.NewClient(snowflake.Snowflake(os.Getenv("DISCORD_BAN_ID")), os.Getenv("DISCORD_BAN_TOKEN"))
+	defer func(Client *webhook.Client, ctx context.Context) {
+		Client.Close(ctx)
+	}(global.BansClient, context.TODO())
 
 	if len(global.SecretToken) < 1 {
 		log.Fatal("To start the server, you must have SECRET_TOKEN defined in .env")

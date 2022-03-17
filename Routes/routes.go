@@ -6,6 +6,8 @@ import (
 	"brandonplank.org/FlappyServer/models"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"github.com/DisgoOrg/disgo/discord"
 	"github.com/gofiber/fiber/v2"
 	guuid "github.com/google/uuid"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -208,6 +210,33 @@ func V1SubmitScore(ctx *fiber.Ctx) error {
 	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
 		database.DB.Model(&readUser).Update("is_banned", true)
 		database.DB.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
+		ip := global.GetIPFromContext(ctx)
+		log.Println(fmt.Sprintf("[BAN] Banned %s with the IP of %s", name, ip))
+		_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
+			{
+				Title:       "Banned User",
+				Description: fmt.Sprintf("%s has been banned for cheating by the ani-cheat"),
+				Color:       16734296,
+				Fields: []discord.EmbedField{
+					{
+						Name:  "Score submitted",
+						Value: fmt.Sprintf("%d", data.Score),
+					},
+					{
+						Name:  "Time",
+						Value: fmt.Sprintf("%d seconds", data.Time),
+					},
+					{
+						Name:  "IP",
+						Value: ip,
+					},
+				},
+				Footer: &discord.EmbedFooter{
+					Text:    "Flappybird API",
+					IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
+				},
+			},
+		})
 	}
 
 	if data.Score > readUser.Score {
