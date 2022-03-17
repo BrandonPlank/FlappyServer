@@ -321,15 +321,14 @@ func V1RestoreScore(ctx *fiber.Ctx) error {
 
 func V1Ban(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	reason := ctx.Params("reason")
+	reason, err := url.QueryUnescape(ctx.Params("reason"))
+	if err != nil {
+		return ctx.SendString(err.Error())
+	}
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
 	if !readUser.Admin || !readUser.Owner {
-		// Owner global override
-		//if id == owner_override {
-		//	goto OVERRIDE
-		//}
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	//OVERRIDE:
