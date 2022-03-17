@@ -357,7 +357,7 @@ func V1Ban(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
-	if !readUser.Admin || !readUser.Owner {
+	if !readUser.Admin && !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	//OVERRIDE:
@@ -367,8 +367,8 @@ func V1Ban(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	if readUser.Admin && !readUser.Owner {
-		if user.Admin || user.Owner {
+	if user.Admin || user.Owner {
+		if !readUser.Owner {
 			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot ban another admin"})
 		}
 	}
@@ -400,8 +400,8 @@ func V1UnBan(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	if readUser.Admin && !readUser.Owner {
-		if user.Admin || user.Owner {
+	if user.Admin || user.Owner {
+		if !readUser.Owner {
 			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot unban another admin"})
 		}
 	}
@@ -432,9 +432,9 @@ func V1DeleteUser(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
 	}
 
-	if readUser.Admin && !readUser.Owner {
-		if user.Admin || user.Owner {
-			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot remove another admin"})
+	if user.Admin || user.Owner {
+		if !readUser.Owner {
+			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "You cannot delete another admin"})
 		}
 	}
 
@@ -449,7 +449,7 @@ func V1MakeAdmin(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
-	if !readUser.Owner && !readUser.Admin {
+	if !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	id := ctx.Params("id")
@@ -457,10 +457,6 @@ func V1MakeAdmin(ctx *fiber.Ctx) error {
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
-	}
-
-	if user.Admin {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 
 	database.DB.Model(&user).Update("admin", true)
