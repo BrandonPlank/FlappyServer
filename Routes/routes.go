@@ -343,6 +343,27 @@ func V1RestoreScore(ctx *fiber.Ctx) error {
 
 	log.Println("[RESTORE]", readUser.Name, "is restoring", user.Name+"'s score to", strconv.Itoa(score)+",was", user.Score)
 
+	_, _ = global.APIClient.CreateEmbeds([]discord.Embed{
+		{
+			Title: fmt.Sprintf("%s restored %s's score", readUser.Name, user.Name),
+			Color: 16734296,
+			Fields: []discord.EmbedField{
+				{
+					Name:  "New score",
+					Value: strconv.Itoa(score),
+				},
+				{
+					Name:  "Old score",
+					Value: strconv.Itoa(user.Score),
+				},
+			},
+			Footer: &discord.EmbedFooter{
+				Text:    "Flappybird API",
+				IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
+			},
+		},
+	})
+
 	database.DB.Model(&user).Update("score", score)
 
 	return ctx.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Updated " + user.Name + "'s score"})

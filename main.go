@@ -123,6 +123,11 @@ func main() {
 		Client.Close(ctx)
 	}(global.BansClient, context.TODO())
 
+	global.APIClient = webhook.NewClient(snowflake.Snowflake(os.Getenv("DISCORD_API_ID")), os.Getenv("DISCORD_API_TOKEN"))
+	defer func(Client *webhook.Client, ctx context.Context) {
+		Client.Close(ctx)
+	}(global.APIClient, context.TODO())
+
 	if len(global.SecretToken) < 1 {
 		log.Fatal("To start the server, you must have SECRET_TOKEN defined in .env")
 	}

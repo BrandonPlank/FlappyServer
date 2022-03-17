@@ -11,6 +11,7 @@ import (
 
 var (
 	BansClient    *webhook.Client
+	APIClient     *webhook.Client
 	SecretToken   string
 	OwnerOverride string
 	Mutex         = &sync.Mutex{}
