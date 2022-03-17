@@ -215,7 +215,7 @@ func V1SubmitScore(ctx *fiber.Ctx) error {
 		_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
 			{
 				Title:       "Banned User",
-				Description: fmt.Sprintf("%s has been banned for cheating by the ani-cheat"),
+				Description: fmt.Sprintf("%s has been banned for cheating by the ani-cheat", name),
 				Color:       16734296,
 				Fields: []discord.EmbedField{
 					{
