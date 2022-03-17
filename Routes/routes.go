@@ -341,6 +341,30 @@ func V1RestoreScore(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "That's illegal, this incident will be recorded"})
 	}
 
+	if (readUser.ID == user.ID) && readUser.Admin && !readUser.Owner {
+		_, _ = global.APIClient.CreateEmbeds([]discord.Embed{
+			{
+				Title: fmt.Sprintf("%s tried to modify their own score", readUser.Name),
+				Color: 16734296,
+				Fields: []discord.EmbedField{
+					{
+						Name:  "Attempted added score",
+						Value: strconv.Itoa(score),
+					},
+					{
+						Name:  "Score",
+						Value: strconv.Itoa(user.Score),
+					},
+				},
+				Footer: &discord.EmbedFooter{
+					Text:    "Flappybird API",
+					IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
+				},
+			},
+		})
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "You cannot modify your own score"})
+	}
+
 	log.Println("[RESTORE]", readUser.Name, "is restoring", user.Name+"'s score to", strconv.Itoa(score)+",was", user.Score)
 
 	_, _ = global.APIClient.CreateEmbeds([]discord.Embed{
