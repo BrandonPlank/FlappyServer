@@ -381,9 +381,14 @@ func V1Ban(ctx *fiber.Ctx) error {
 	log.Println(fmt.Sprintf("[BAN] %s Banned %s: %s", readUser.Name, user.Name, format))
 	_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
 		{
-			Title:       fmt.Sprintf("%s banned %s", readUser.Name, user.Name),
-			Description: fmt.Sprintf("%s has been banned for %s", user.Name, format),
-			Color:       16734296,
+			Title: fmt.Sprintf("%s banned %s", readUser.Name, user.Name),
+			Color: 16734296,
+			Fields: []discord.EmbedField{
+				{
+					Name:  "Reason",
+					Value: format,
+				},
+			},
 			Footer: &discord.EmbedFooter{
 				Text:    "Flappybird API",
 				IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
