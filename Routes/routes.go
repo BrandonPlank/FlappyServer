@@ -449,7 +449,7 @@ func V1MakeAdmin(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
-	if !readUser.Owner {
+	if !readUser.Owner && !readUser.Admin {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	id := ctx.Params("id")
@@ -457,6 +457,10 @@ func V1MakeAdmin(ctx *fiber.Ctx) error {
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+
+	if user.Admin {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 
 	database.DB.Model(&user).Update("admin", true)
@@ -468,7 +472,7 @@ func V1ServerLogFile(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
 	database.DB.Where("name=?", name).First(&readUser)
-	if !readUser.Owner {
+	if !readUser.Owner && !readUser.Admin {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 
