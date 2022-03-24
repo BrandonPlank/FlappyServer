@@ -72,6 +72,7 @@ func setupRoutes(app *fiber.App) {
 	v1.Get("/globalDeaths", routes.V1GlobalDeaths)
 	v1.Get("/userCount", routes.V1UserCount)
 	v1.Get("/users", routes.V1GetUsers)
+	v1.Get("/user/:id", routes.V1GetUser)
 	v1.Get("/getID/:name", routes.V1GetID)
 	v1.Post("/registerUser", routes.V1RegisterUser)
 

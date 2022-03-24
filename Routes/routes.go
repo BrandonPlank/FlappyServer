@@ -112,6 +112,19 @@ func V1GetUsers(ctx *fiber.Ctx) error {
 	return ctx.JSON(models.ConvertUsersToPublicUsers(users))
 }
 
+func V1GetUser(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
+	var user models.User
+	database.DB.First(&user, "id=?", guuid.MustParse(id))
+	if user.ID == guuid.Nil || user.ID.String() != id {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to get user ID"})
+	}
+	return ctx.JSON(models.ConvertUserToPublicUser(&user))
+}
+
 func V1InternalUsers(ctx *fiber.Ctx) error {
 	name := ctx.Locals("name")
 	var readUser models.User
