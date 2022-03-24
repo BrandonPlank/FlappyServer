@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/DisgoOrg/disgo v0.7.2
 	github.com/gofiber/fiber/v2 v2.29.0
+	github.com/google/uuid v1.3.0
 )
 
 require (

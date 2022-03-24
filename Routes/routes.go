@@ -327,6 +327,9 @@ func V1RestoreScore(ctx *fiber.Ctx) error {
 	if !readUser.Admin && !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
 	var user models.User
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -405,7 +408,9 @@ func V1Ban(ctx *fiber.Ctx) error {
 	if !readUser.Admin && !readUser.Owner {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
-	//OVERRIDE:
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
 	var user models.User
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -455,7 +460,9 @@ func V1UnBan(ctx *fiber.Ctx) error {
 		//}
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
-	//OVERRIDE:
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
 	var user models.User
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -498,7 +505,9 @@ func V1DeleteUser(ctx *fiber.Ctx) error {
 		//}
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
-	//OVERRIDE:
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
 	var user models.User
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
@@ -526,6 +535,9 @@ func V1MakeAdmin(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthorized"})
 	}
 	id := ctx.Params("id")
+	if !global.IsValidUUID(id) {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "Failed to parse UUID"})
+	}
 	var user models.User
 	database.DB.First(&user, "id=?", guuid.MustParse(id))
 	if user.ID == guuid.Nil || user.ID.String() != id {
