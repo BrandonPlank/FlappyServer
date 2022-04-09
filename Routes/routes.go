@@ -220,36 +220,40 @@ func V1SubmitScore(ctx *fiber.Ctx) error {
 	log.Println("[SCORE] Score verification passed for", name)
 	log.Println("[SCORE] User:", name, "[ID:"+readUser.ID.String()+"] submitted score:", data.Score, "took", data.Time, "seconds.")
 
-	if data.Time+100 < data.Score || data.Time-100 > data.Score && !readUser.Admin {
-		database.DB.Model(&readUser).Update("is_banned", true)
-		database.DB.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
-		ip := global.GetIPFromContext(ctx)
-		log.Println(fmt.Sprintf("[BAN] Banned %s with the IP of %s", name, ip))
-		_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
-			{
-				Title:       "Banned User",
-				Description: fmt.Sprintf("%s has been banned for cheating by the ani-cheat", name),
-				Color:       16734296,
-				Fields: []discord.EmbedField{
-					{
-						Name:  "Score submitted",
-						Value: fmt.Sprintf("%d", data.Score),
+	// Don't do this check if they are already banned
+
+	if !readUser.IsBanned {
+		if data.Time+100 < data.Score {
+			database.DB.Model(&readUser).Update("is_banned", true)
+			database.DB.Model(&readUser).Update("ban_reason", "Cheating (Anti cheat)")
+			ip := global.GetIPFromContext(ctx)
+			log.Println(fmt.Sprintf("[BAN] Banned %s with the IP of %s", name, ip))
+			_, _ = global.BansClient.CreateEmbeds([]discord.Embed{
+				{
+					Title:       "Banned User",
+					Description: fmt.Sprintf("%s has been banned for cheating by the anti-cheat", name),
+					Color:       16734296,
+					Fields: []discord.EmbedField{
+						{
+							Name:  "Score submitted",
+							Value: fmt.Sprintf("%d", data.Score),
+						},
+						{
+							Name:  "Time",
+							Value: fmt.Sprintf("%d seconds", data.Time),
+						},
+						{
+							Name:  "IP",
+							Value: ip,
+						},
 					},
-					{
-						Name:  "Time",
-						Value: fmt.Sprintf("%d seconds", data.Time),
-					},
-					{
-						Name:  "IP",
-						Value: ip,
+					Footer: &discord.EmbedFooter{
+						Text:    "Flappybird API",
+						IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
 					},
 				},
-				Footer: &discord.EmbedFooter{
-					Text:    "Flappybird API",
-					IconURL: "https://flappybird.brandonplank.org/images/favicon.png",
-				},
-			},
-		})
+			})
+		}
 	}
 
 	if data.Score > readUser.Score {
